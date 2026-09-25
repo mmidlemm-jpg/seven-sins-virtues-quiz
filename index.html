@@ -1,0 +1,698 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>七宗罪 vs 七美德 | 测出你的14维人性光谱</title>
+  <meta name="description" content="14道题测出你的七宗罪与七美德倾向，生成专属14维雷达图" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <style>
+    :root {
+      --bg: #0f0a1a;
+      --card: #1a1225;
+      --text: #f0e6ff;
+      --muted: #a89bbf;
+      --sin: #ff4d6d;
+      --sin-dark: #c9184a;
+      --virtue: #ffd166;
+      --virtue-dark: #e9a825;
+      --accent: #9b5de5;
+      --radius: 18px;
+      --shadow: 0 12px 40px rgba(0,0,0,0.45);
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 20px 16px 48px;
+      line-height: 1.6;
+      background-image: radial-gradient(ellipse at top, #1f1433 0%, var(--bg) 70%);
+    }
+
+    .container { width: 100%; max-width: 480px; }
+
+    .header {
+      text-align: center;
+      margin-bottom: 22px;
+      padding-top: 8px;
+    }
+    .header .emoji { font-size: 42px; display: block; margin-bottom: 6px; }
+    .header h1 {
+      font-size: 1.55rem;
+      font-weight: 700;
+      background: linear-gradient(135deg, var(--sin), var(--virtue));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .header p { color: var(--muted); font-size: 0.88rem; margin-top: 6px; }
+
+    .card {
+      background: var(--card);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 26px 22px;
+      border: 1px solid rgba(155, 93, 229, 0.15);
+    }
+
+    .start-screen .intro { text-align: center; margin-bottom: 24px; }
+    .start-screen .intro p { color: var(--muted); font-size: 0.95rem; margin-bottom: 8px; }
+    .features {
+      display: flex;
+      justify-content: center;
+      gap: 10px;
+      margin: 18px 0 24px;
+      flex-wrap: wrap;
+    }
+    .feature {
+      background: rgba(155, 93, 229, 0.15);
+      color: #d4b8ff;
+      padding: 7px 13px;
+      border-radius: 50px;
+      font-size: 0.82rem;
+      font-weight: 500;
+    }
+
+    .btn {
+      display: block;
+      width: 100%;
+      padding: 15px 22px;
+      border: none;
+      border-radius: 50px;
+      font-size: 1.05rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      text-align: center;
+      font-family: inherit;
+    }
+    .btn-primary {
+      background: linear-gradient(135deg, var(--sin), var(--accent));
+      color: white;
+      box-shadow: 0 6px 22px rgba(255, 77, 109, 0.35);
+    }
+    .btn-primary:hover { transform: translateY(-2px); }
+    .btn-secondary {
+      background: rgba(255, 255, 255, 0.08);
+      color: var(--text);
+      margin-top: 12px;
+      border: 1px solid rgba(255,255,255,0.12);
+    }
+
+    .progress-wrap { margin-bottom: 18px; }
+    .progress-bar {
+      height: 5px;
+      background: rgba(255,255,255,0.08);
+      border-radius: 10px;
+      overflow: hidden;
+    }
+    .progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--sin), var(--virtue));
+      border-radius: 10px;
+      transition: width 0.35s ease;
+    }
+    .progress-text {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.78rem;
+      color: var(--muted);
+      margin-top: 7px;
+    }
+
+    .question-num {
+      font-size: 0.82rem;
+      color: var(--accent);
+      font-weight: 600;
+      margin-bottom: 8px;
+    }
+    .question-text {
+      font-size: 1.15rem;
+      font-weight: 600;
+      margin-bottom: 22px;
+      line-height: 1.45;
+    }
+
+    .options { display: flex; flex-direction: column; gap: 11px; }
+    .option {
+      background: rgba(255,255,255,0.04);
+      border: 1.5px solid rgba(255,255,255,0.1);
+      border-radius: 14px;
+      padding: 14px 16px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      font-size: 0.95rem;
+      text-align: left;
+      color: var(--text);
+      font-family: inherit;
+    }
+    .option:hover {
+      border-color: var(--accent);
+      background: rgba(155, 93, 229, 0.12);
+    }
+    .option:active { transform: scale(0.98); }
+
+    /* Result */
+    .result-screen { text-align: center; }
+    .result-badge {
+      display: inline-block;
+      background: linear-gradient(135deg, var(--sin), var(--virtue));
+      color: #1a1225;
+      padding: 5px 16px;
+      border-radius: 50px;
+      font-size: 0.82rem;
+      font-weight: 700;
+      margin-bottom: 14px;
+    }
+    .result-title {
+      font-size: 1.5rem;
+      font-weight: 700;
+      margin-bottom: 6px;
+      background: linear-gradient(135deg, var(--sin), var(--virtue));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .result-subtitle { color: var(--muted); font-size: 0.9rem; margin-bottom: 20px; }
+
+    .chart-wrap {
+      background: rgba(0,0,0,0.25);
+      border-radius: 16px;
+      padding: 16px 8px 8px;
+      margin-bottom: 22px;
+      border: 1px solid rgba(155, 93, 229, 0.2);
+    }
+    .chart-wrap canvas { max-height: 320px; }
+
+    .result-section {
+      text-align: left;
+      margin-bottom: 18px;
+      background: rgba(255,255,255,0.03);
+      border-radius: 14px;
+      padding: 16px;
+    }
+    .result-section h3 {
+      font-size: 0.95rem;
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .result-section.sin h3 { color: var(--sin); }
+    .result-section.virtue h3 { color: var(--virtue); }
+    .result-section ul {
+      padding-left: 18px;
+      font-size: 0.88rem;
+      color: #d4c8e8;
+      line-height: 1.65;
+    }
+    .result-section li { margin-bottom: 4px; }
+
+    .dim-list {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin-top: 8px;
+    }
+    .dim-item {
+      font-size: 0.82rem;
+      padding: 6px 10px;
+      border-radius: 8px;
+      display: flex;
+      justify-content: space-between;
+    }
+    .dim-item.sin { background: rgba(255, 77, 109, 0.12); color: #ff8fa3; }
+    .dim-item.virtue { background: rgba(255, 209, 102, 0.12); color: #ffe08a; }
+
+    .share-area { margin-top: 20px; }
+    .share-text {
+      background: rgba(0,0,0,0.3);
+      border-radius: 12px;
+      padding: 12px;
+      font-size: 0.84rem;
+      color: #c9b8e0;
+      margin-bottom: 12px;
+      word-break: break-all;
+      text-align: left;
+      border: 1px dashed rgba(255,255,255,0.15);
+    }
+
+    .toast {
+      position: fixed;
+      bottom: 36px;
+      left: 50%;
+      transform: translateX(-50%) translateY(100px);
+      background: #333;
+      color: white;
+      padding: 12px 22px;
+      border-radius: 50px;
+      font-size: 0.9rem;
+      opacity: 0;
+      transition: all 0.3s ease;
+      z-index: 100;
+      white-space: nowrap;
+    }
+    .toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
+
+    .fade-in { animation: fadeIn 0.4s ease; }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(12px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .hidden { display: none !important; }
+
+    footer {
+      margin-top: 28px;
+      text-align: center;
+      font-size: 0.72rem;
+      color: #666;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <span class="emoji">⚖️</span>
+      <h1>七宗罪 vs 七美德</h1>
+      <p>14维人性光谱测试 · 测出你的光与暗</p>
+    </div>
+
+    <!-- Start -->
+    <div id="start-screen" class="card start-screen fade-in">
+      <div class="intro">
+        <p>每个人心中都有七宗罪与七美德的拉扯。</p>
+        <p>14道题，画出你真实的人性光谱。</p>
+        <div class="features">
+          <span class="feature">⏱ 约3分钟</span>
+          <span class="feature">📊 14维雷达图</span>
+          <span class="feature">💬 可分享</span>
+        </div>
+      </div>
+      <button class="btn btn-primary" onclick="startQuiz()">开始测试</button>
+    </div>
+
+    <!-- Quiz -->
+    <div id="quiz-screen" class="card hidden">
+      <div class="progress-wrap">
+        <div class="progress-bar">
+          <div class="progress-fill" id="progress-fill" style="width:0%"></div>
+        </div>
+        <div class="progress-text">
+          <span id="progress-num">第 1 题</span>
+          <span id="progress-percent">0%</span>
+        </div>
+      </div>
+      <div class="question-num" id="q-num">Question 1 / 14</div>
+      <div class="question-text" id="q-text"></div>
+      <div class="options" id="options"></div>
+    </div>
+
+    <!-- Result -->
+    <div id="result-screen" class="card result-screen hidden">
+      <div class="result-badge">你的14维人性光谱</div>
+      <h2 class="result-title" id="r-title"></h2>
+      <p class="result-subtitle" id="r-subtitle"></p>
+
+      <div class="chart-wrap">
+        <canvas id="radarChart"></canvas>
+      </div>
+
+      <div class="result-section sin">
+        <h3>🔥 较突出的罪倾向</h3>
+        <ul id="r-sins"></ul>
+      </div>
+
+      <div class="result-section virtue">
+        <h3>✨ 较突出的美德倾向</h3>
+        <ul id="r-virtues"></ul>
+      </div>
+
+      <div class="result-section">
+        <h3>📊 完整14维得分</h3>
+        <div class="dim-list" id="dim-list"></div>
+      </div>
+
+      <div class="share-area">
+        <div class="share-text" id="share-text"></div>
+        <button class="btn btn-primary" onclick="copyResult()">复制结果去分享</button>
+        <button class="btn btn-secondary" onclick="restart()">再测一次</button>
+      </div>
+    </div>
+
+    <footer>纯前端运行 · 不收集数据 · 仅供娱乐与自我觉察</footer>
+  </div>
+
+  <div class="toast" id="toast">已复制到剪贴板！</div>
+
+  <script>
+    // 14 dimensions
+    const dims = {
+      pride:     { name: '傲慢', type: 'sin',    emoji: '🦚' },
+      envy:      { name: '嫉妒', type: 'sin',    emoji: '🐍' },
+      wrath:     { name: '愤怒', type: 'sin',    emoji: '🔥' },
+      sloth:     { name: '怠惰', type: 'sin',    emoji: '🛋️' },
+      greed:     { name: '贪婪', type: 'sin',    emoji: '💰' },
+      gluttony:  { name: '暴食', type: 'sin',    emoji: '🍖' },
+      lust:      { name: '色欲', type: 'sin',    emoji: '💋' },
+      humility:  { name: '谦卑', type: 'virtue', emoji: '🌿' },
+      kindness:  { name: '宽容', type: 'virtue', emoji: '🕊️' },
+      patience:  { name: '忍耐', type: 'virtue', emoji: '⏳' },
+      diligence: { name: '勤勉', type: 'virtue', emoji: '⚡' },
+      charity:   { name: '慷慨', type: 'virtue', emoji: '🎁' },
+      temperance:{ name: '节制', type: 'virtue', emoji: '⚖️' },
+      chastity:  { name: '贞洁', type: 'virtue', emoji: '🤍' }
+    };
+
+    const labels = Object.keys(dims).map(k => dims[k].name);
+
+    // Questions: each option adds points to one or more dims
+    const questions = [
+      {
+        text: "当别人比你更优秀时，你内心更常出现的是？",
+        options: [
+          { text: "不服气，想找机会证明自己更强", scores: { pride: 2, envy: 1 } },
+          { text: "有点羡慕，但会祝福并学习对方", scores: { kindness: 2, humility: 1 } },
+          { text: "暗自比较，情绪会受影响一段时间", scores: { envy: 2 } },
+          { text: "几乎不影响，专注做好自己的事", scores: { diligence: 1, humility: 1 } }
+        ]
+      },
+      {
+        text: "面对一个非常诱人的机会（可能不太正当），你会？",
+        options: [
+          { text: "只要收益够大，规则可以灵活一点", scores: { greed: 2, pride: 1 } },
+          { text: "认真评估风险与道德边界，多数会拒绝", scores: { temperance: 2, chastity: 1 } },
+          { text: "先享受再想后果，活在当下", scores: { lust: 1, gluttony: 1 } },
+          { text: "宁愿错过，也不想内心不安", scores: { chastity: 2, humility: 1 } }
+        ]
+      },
+      {
+        text: "和亲近的人发生激烈冲突时，你更可能？",
+        options: [
+          { text: "情绪上头，说重话或摔东西", scores: { wrath: 2 } },
+          { text: "强压怒火，事后再冷静沟通", scores: { patience: 2, temperance: 1 } },
+          { text: "直接冷战或逃避，不想面对", scores: { sloth: 1, envy: 1 } },
+          { text: "先道歉缓和气氛，再谈问题", scores: { kindness: 2, patience: 1 } }
+        ]
+      },
+      {
+        text: "闲暇时间你更倾向于？",
+        options: [
+          { text: "刷手机、追剧、躺平，什么都不想做", scores: { sloth: 2, gluttony: 1 } },
+          { text: "学习新东西或推进自己的目标", scores: { diligence: 2 } },
+          { text: "约人聚会、享受美食与娱乐", scores: { gluttony: 1, lust: 1 } },
+          { text: "帮助朋友或参与有意义的事", scores: { charity: 2, kindness: 1 } }
+        ]
+      },
+      {
+        text: "关于金钱与物质，你的态度更接近？",
+        options: [
+          { text: "越多越好，安全感来自拥有", scores: { greed: 2 } },
+          { text: "够用就好，愿意分享给需要的人", scores: { charity: 2, temperance: 1 } },
+          { text: "喜欢买自己想要的，不太克制", scores: { gluttony: 1, greed: 1 } },
+          { text: "精打细算，但对重要的人很大方", scores: { temperance: 1, charity: 1 } }
+        ]
+      },
+      {
+        text: "面对美食或感官享乐时，你通常？",
+        options: [
+          { text: "很难停下来，容易过度", scores: { gluttony: 2, lust: 1 } },
+          { text: "享受但有分寸，知道适可而止", scores: { temperance: 2 } },
+          { text: "比较克制，甚至有点压抑", scores: { chastity: 1, temperance: 1 } },
+          { text: "看心情，有时放纵有时自律", scores: { gluttony: 1 } }
+        ]
+      },
+      {
+        text: "在感情或亲密关系中，你更看重？",
+        options: [
+          { text: "强烈的吸引与激情体验", scores: { lust: 2 } },
+          { text: "忠诚、尊重与精神契合", scores: { chastity: 2, kindness: 1 } },
+          { text: "对方能满足我的需求与虚荣", scores: { pride: 1, greed: 1 } },
+          { text: "稳定陪伴与共同成长", scores: { patience: 1, diligence: 1 } }
+        ]
+      },
+      {
+        text: "当别人指出你的缺点时，你第一反应是？",
+        options: [
+          { text: "防御或反驳，觉得对方不了解我", scores: { pride: 2 } },
+          { text: "有点刺痛，但会认真反思", scores: { humility: 2 } },
+          { text: "表面接受，内心其实不服", scores: { pride: 1, envy: 1 } },
+          { text: "感谢对方，并思考如何改进", scores: { humility: 1, diligence: 1 } }
+        ]
+      },
+      {
+        text: "看到别人轻松获得你很努力才得到的东西，你会？",
+        options: [
+          { text: "心里不平衡，觉得不公平", scores: { envy: 2, wrath: 1 } },
+          { text: "祝福对方，继续走自己的路", scores: { kindness: 2, humility: 1 } },
+          { text: "更加拼劲，想超过对方", scores: { diligence: 1, pride: 1 } },
+          { text: "有点沮丧，暂时提不起劲", scores: { sloth: 1, envy: 1 } }
+        ]
+      },
+      {
+        text: "面对需要长期坚持的事情，你通常？",
+        options: [
+          { text: "三分钟热度，很难持续", scores: { sloth: 2 } },
+          { text: "能咬牙坚持，直到完成", scores: { diligence: 2, patience: 1 } },
+          { text: "靠外力督促或奖励才做得到", scores: { sloth: 1 } },
+          { text: "拆成小目标，稳步推进", scores: { diligence: 1, temperance: 1 } }
+        ]
+      },
+      {
+        text: "当朋友遇到困难需要你帮忙时，你会？",
+        options: [
+          { text: "量力而行，先保护自己的利益", scores: { greed: 1, temperance: 1 } },
+          { text: "尽量伸出援手，哪怕自己也忙", scores: { charity: 2, kindness: 1 } },
+          { text: "看对方之前怎么对我", scores: { envy: 1 } },
+          { text: "愿意帮，但会设清晰边界", scores: { temperance: 1, charity: 1 } }
+        ]
+      },
+      {
+        text: "你对「控制情绪」这件事的态度是？",
+        options: [
+          { text: "情绪来了就表达，压抑不健康", scores: { wrath: 1, lust: 1 } },
+          { text: "努力练习冷静，不轻易被情绪带走", scores: { patience: 2, temperance: 1 } },
+          { text: "经常事后后悔自己太冲动", scores: { wrath: 2 } },
+          { text: "已经比较能觉察并调节情绪", scores: { patience: 1, humility: 1 } }
+        ]
+      },
+      {
+        text: "关于「欲望」与「自律」，你更认同？",
+        options: [
+          { text: "人生苦短，该享受就享受", scores: { lust: 1, gluttony: 1, greed: 1 } },
+          { text: "欲望需要被引导和节制", scores: { temperance: 2, chastity: 1 } },
+          { text: "强大的人应该战胜欲望", scores: { pride: 1, diligence: 1 } },
+          { text: "接纳欲望，但不被它完全控制", scores: { temperance: 1, humility: 1 } }
+        ]
+      },
+      {
+        text: "如果用一个词形容你理想中的自己，你会选？",
+        options: [
+          { text: "强大、被人敬畏", scores: { pride: 2 } },
+          { text: "温柔、有力量、能照亮别人", scores: { kindness: 1, charity: 1, humility: 1 } },
+          { text: "自由、随心所欲", scores: { lust: 1, sloth: 1 } },
+          { text: "沉稳、可靠、持续精进", scores: { diligence: 1, patience: 1, temperance: 1 } }
+        ]
+      }
+    ];
+
+    // State
+    let current = 0;
+    let scores = {};
+    Object.keys(dims).forEach(k => scores[k] = 0);
+
+    let chartInstance = null;
+
+    function startQuiz() {
+      document.getElementById('start-screen').classList.add('hidden');
+      document.getElementById('quiz-screen').classList.remove('hidden');
+      document.getElementById('quiz-screen').classList.add('fade-in');
+      current = 0;
+      Object.keys(scores).forEach(k => scores[k] = 0);
+      showQuestion();
+    }
+
+    function showQuestion() {
+      const q = questions[current];
+      const total = questions.length;
+      const percent = Math.round((current / total) * 100);
+
+      document.getElementById('progress-fill').style.width = percent + '%';
+      document.getElementById('progress-num').textContent = `第 ${current + 1} 题`;
+      document.getElementById('progress-percent').textContent = percent + '%';
+      document.getElementById('q-num').textContent = `Question ${current + 1} / ${total}`;
+      document.getElementById('q-text').textContent = q.text;
+
+      const opts = document.getElementById('options');
+      opts.innerHTML = '';
+      q.options.forEach(opt => {
+        const btn = document.createElement('button');
+        btn.className = 'option';
+        btn.textContent = opt.text;
+        btn.onclick = () => selectOption(opt.scores);
+        opts.appendChild(btn);
+      });
+    }
+
+    function selectOption(scoreMap) {
+      for (const [k, v] of Object.entries(scoreMap)) {
+        scores[k] = (scores[k] || 0) + v;
+      }
+      current++;
+      if (current < questions.length) {
+        document.getElementById('quiz-screen').classList.remove('fade-in');
+        void document.getElementById('quiz-screen').offsetWidth;
+        document.getElementById('quiz-screen').classList.add('fade-in');
+        showQuestion();
+      } else {
+        showResult();
+      }
+    }
+
+    function showResult() {
+      // Normalize scores roughly to 0-10 for radar
+      const maxPossible = 4; // rough max per dim
+      const values = Object.keys(dims).map(k => Math.min(10, Math.round((scores[k] / maxPossible) * 10)));
+
+      // Top sins & virtues
+      const sinKeys = Object.keys(dims).filter(k => dims[k].type === 'sin');
+      const virtueKeys = Object.keys(dims).filter(k => dims[k].type === 'virtue');
+
+      const sortedSins = sinKeys.sort((a,b) => scores[b] - scores[a]).slice(0, 3);
+      const sortedVirtues = virtueKeys.sort((a,b) => scores[b] - scores[a]).slice(0, 3);
+
+      // Title based on balance
+      const totalSin = sinKeys.reduce((s,k) => s + scores[k], 0);
+      const totalVirtue = virtueKeys.reduce((s,k) => s + scores[k], 0);
+      let title = '', subtitle = '';
+      if (totalVirtue > totalSin + 4) {
+        title = '光明倾向者';
+        subtitle = '你的美德光谱更亮，内心有较强的自我约束与善意';
+      } else if (totalSin > totalVirtue + 4) {
+        title = '暗影探索者';
+        subtitle = '你对欲望与情绪更坦诚，罪的倾向更明显，也更有生命力';
+      } else {
+        title = '平衡的拉扯者';
+        subtitle = '罪与美德在你身上交织，真实而复杂';
+      }
+
+      document.getElementById('quiz-screen').classList.add('hidden');
+      document.getElementById('result-screen').classList.remove('hidden');
+      document.getElementById('result-screen').classList.add('fade-in');
+
+      document.getElementById('r-title').textContent = title;
+      document.getElementById('r-subtitle').textContent = subtitle;
+
+      // Sins list
+      const sinsUl = document.getElementById('r-sins');
+      sinsUl.innerHTML = sortedSins.map(k => {
+        const d = dims[k];
+        return `<li>${d.emoji} <strong>${d.name}</strong> —— 得分 ${scores[k]}</li>`;
+      }).join('');
+
+      // Virtues list
+      const virtUl = document.getElementById('r-virtues');
+      virtUl.innerHTML = sortedVirtues.map(k => {
+        const d = dims[k];
+        return `<li>${d.emoji} <strong>${d.name}</strong> —— 得分 ${scores[k]}</li>`;
+      }).join('');
+
+      // Full dim list
+      const dimList = document.getElementById('dim-list');
+      dimList.innerHTML = Object.keys(dims).map(k => {
+        const d = dims[k];
+        return `<div class="dim-item ${d.type}">${d.emoji} ${d.name}<span>${scores[k]}</span></div>`;
+      }).join('');
+
+      // Share text
+      const topSin = dims[sortedSins[0]].name;
+      const topVirtue = dims[sortedVirtues[0]].name;
+      document.getElementById('share-text').textContent =
+        `我测出自己的人性光谱是「${title}」\n较突出罪倾向：${topSin}\n较突出美德：${topVirtue}\n你也来测测自己的14维？`;
+
+      // Radar chart
+      if (chartInstance) chartInstance.destroy();
+      const ctx = document.getElementById('radarChart').getContext('2d');
+      chartInstance = new Chart(ctx, {
+        type: 'radar',
+        data: {
+          labels: labels,
+          datasets: [{
+            label: '你的倾向',
+            data: values,
+            fill: true,
+            backgroundColor: 'rgba(155, 93, 229, 0.25)',
+            borderColor: '#9b5de5',
+            pointBackgroundColor: '#ff4d6d',
+            pointBorderColor: '#fff',
+            pointHoverBackgroundColor: '#fff',
+            pointHoverBorderColor: '#9b5de5',
+            borderWidth: 2
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: true,
+          scales: {
+            r: {
+              angleLines: { color: 'rgba(255,255,255,0.08)' },
+              grid: { color: 'rgba(255,255,255,0.08)' },
+              pointLabels: {
+                color: '#d4c8e8',
+                font: { size: 11 }
+              },
+              ticks: {
+                display: false,
+                min: 0,
+                max: 10
+              },
+              suggestedMin: 0,
+              suggestedMax: 10
+            }
+          },
+          plugins: {
+            legend: { display: false }
+          }
+        }
+      });
+
+      document.getElementById('progress-fill').style.width = '100%';
+    }
+
+    function copyResult() {
+      const text = document.getElementById('share-text').textContent;
+      navigator.clipboard.writeText(text).then(() => {
+        const toast = document.getElementById('toast');
+        toast.classList.add('show');
+        setTimeout(() => toast.classList.remove('show'), 2000);
+      }).catch(() => {
+        const ta = document.createElement('textarea');
+        ta.value = text;
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand('copy');
+        document.body.removeChild(ta);
+        const toast = document.getElementById('toast');
+        toast.classList.add('show');
+        setTimeout(() => toast.classList.remove('show'), 2000);
+      });
+    }
+
+    function restart() {
+      document.getElementById('result-screen').classList.add('hidden');
+      document.getElementById('start-screen').classList.remove('hidden');
+      document.getElementById('start-screen').classList.add('fade-in');
+      if (chartInstance) {
+        chartInstance.destroy();
+        chartInstance = null;
+      }
+    }
+  </script>
+</body>
+</html>
